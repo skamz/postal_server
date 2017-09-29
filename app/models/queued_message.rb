@@ -110,7 +110,7 @@ class QueuedMessage < ApplicationRecord
     else
       time = Time.now
       locker = Postal.locker_name
-      self.class.retriable.where(:batch_key => self.batch_key, :ip_address_id => self.ip_address_id, :locked_by => nil, :locked_at => nil).limit(limit).update_all(:locked_by => locker, :locked_at => time)
+      self.class.retriable.where(:batch_key => self.batch_key, :ip_address_id => self.ip_address_id, :locked_by => nil, :locked_at => nil).limit(limit).order(priority: :desc).update_all(:locked_by => locker, :locked_at => time)
       QueuedMessage.where(:batch_key => self.batch_key, :ip_address_id => self.ip_address_id, :locked_by => locker, :locked_at => time)
     end
   end

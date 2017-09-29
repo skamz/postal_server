@@ -344,7 +344,7 @@ module Postal
       # Create a new item in the message queue for this message
       #
       def add_to_message_queue(options = {})
-        QueuedMessage.create!(:message => self, :server_id => @database.server_id, :batch_key => self.batch_key, :domain => self.recipient_domain, :route_id => self.route_id, :manual => options[:manual]).id
+        QueuedMessage.create!(:message => self, :server_id => @database.server_id, :batch_key => self.batch_key, :domain => self.recipient_domain, :route_id => self.route_id, :manual => options[:manual], :priority => @attributes['priority']).id
       end
 
       #
@@ -551,14 +551,14 @@ module Postal
       private
 
       def _update
-        @database.update('messages', @attributes.reject {|k,v| k == :id }, :where => {:id => @attributes['id']})
+        @database.update('messages', @attributes.reject {|k,v| k == :id || k == 'priority' }, :where => {:id => @attributes['id']})
       end
 
       def _create
         self.timestamp = Time.now.to_f if self.timestamp.blank?
         self.status = 'Pending' if self.status.blank?
         self.token = Nifty::Utils::RandomString.generate(:length => 12) if self.token.blank?
-        last_id = @database.insert('messages', @attributes.reject {|k,v| k == :id })
+        last_id = @database.insert('messages', @attributes.reject {|k,v| k == :id || k == 'priority' })
         @attributes['id'] = last_id
         @database.statistics.increment_all(self.timestamp, self.scope)
         Statistic.global.increment!(:total_messages)

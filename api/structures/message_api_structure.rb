@@ -23,6 +23,7 @@ structure :message do
       :bounce => o.bounce,
       :bounce_for_id => o.bounce_for_id,
       :tag => o.tag,
+	  :priority => o.priority,
       :received_with_ssl => o.received_with_ssl
     }
   }

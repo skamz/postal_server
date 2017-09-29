@@ -16,6 +16,7 @@ class OutgoingMessagePrototype
   attr_accessor :tag
   attr_accessor :credential
   attr_accessor :bounce
+  attr_accessor :priority
 
   def initialize(server, ip, source_type, attributes)
     @server = server
@@ -23,6 +24,7 @@ class OutgoingMessagePrototype
     @source_type = source_type
     @custom_headers = {}
     @attachments = []
+	@priority = 0
     @message_id = "#{SecureRandom.uuid}@#{Postal.config.dns.return_path}"
     attributes.each do |key, value|
       instance_variable_set("@#{key}", value)
@@ -196,6 +198,7 @@ class OutgoingMessagePrototype
     message.credential_id = self.credential&.id
     message.received_with_ssl = true
     message.bounce = @bounce ? 1 : 0
+	message.priority = @priority
     message.save
     {:id => message.id, :token => message.token}
   end

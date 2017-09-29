@@ -20,6 +20,7 @@ controller :send do
     param :attachments, "An array of attachments for this e-mail", :type => Array
     param :headers, "A hash of additional headers", :type => Hash
     param :bounce, "Is this message a bounce?", :type => :boolean
+	param :priority, "The priority must be integer", :type => Integer
     # Errors
     error 'ValidationError', "The provided data was not sufficient to send an email", :attributes => {:errors => "A hash of error details"}
     error 'NoRecipients', "There are no recipients defined to received this message"
@@ -34,8 +35,8 @@ controller :send do
     # Return
     returns Hash
     # Action
-    action do
-      attributes = {}
+    action do  
+	  attributes = {}
       attributes[:to] = params.to
       attributes[:cc] = params.cc
       attributes[:bcc] = params.bcc
@@ -53,6 +54,7 @@ controller :send do
         next unless attachment.is_a?(Hash)
         attributes[:attachments] << {:name => attachment['name'], :content_type => attachment['content_type'], :data => attachment['data'], :base64 => true}
       end
+	  attributes[:priority] = params.priority
       message = OutgoingMessagePrototype.new(identity.server, request.ip, 'api', attributes)
       message.credential = identity
       if message.valid?
