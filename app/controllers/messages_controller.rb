@@ -199,7 +199,7 @@
       end
     end
 
-    @messages = @server.message_db.messages_with_pagination(params[:page], options)
+    @messages = @server.message_db.messages_limited(params[:page], options)
   end
 
   class TimeUndetermined < Postal::Error; end

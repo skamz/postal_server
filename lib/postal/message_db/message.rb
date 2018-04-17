@@ -26,6 +26,12 @@ module Postal
         end
       end
 
+	  def self.find_limited(database, page, options = {})
+        messages = database.select_limited('messages', page, options)
+        messages[:records] = messages[:records].map { |m| Message.new(database, m) }
+        messages
+      end
+	  
       def self.find_with_pagination(database, page, options = {})
         messages = database.select_with_pagination('messages', page, options)
         messages[:records] = messages[:records].map { |m| Message.new(database, m) }
