@@ -31,12 +31,11 @@ gem 'createsend', '~> 4.0'
 gem 'acme-client'
 gem 'highline', :require => true
 
-group :development, :assets do
+
   gem 'sass-rails', '~> 5.0'
   gem 'uglifier', '>= 1.3.0'
   gem 'coffee-rails', '~> 4.2'
   gem 'jquery-rails'
-end
 
 group :development, :test do
   gem 'byebug'

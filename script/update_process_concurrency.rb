@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require File.expand_path('../../lib/postal/config', __FILE__)
-worker_quantity = Postal.config.workers&.quantity || 1
+worker_quantity = Postal.config.workers&.quantity || 16
 hash = {
   'root' => Postal.app_root.to_s,
   'user' => ENV['USER'],
