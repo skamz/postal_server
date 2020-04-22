@@ -10,9 +10,15 @@ controller :messages do
     returns Hash
 
     action do
+	  hostName = ""
+	  ENV.each_pair do |k, v| 
+		if k == "HOST_NAME"
+		  hostName = v
+		end
+	  end
       server = identity.server
       {
-              host_domain: ENV,
+              host_domain: hostName,
               held_messages: server.held_messages,
               queued_messages: server.queue_size,
               bounce_rate: server.bounce_rate,
