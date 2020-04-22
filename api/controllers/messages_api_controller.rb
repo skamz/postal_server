@@ -12,7 +12,7 @@ controller :messages do
     action do
       server = identity.server
       {
-              host_domain: request.headers['HOST'],
+              host_domain: request.headers,
               held_messages: server.held_messages,
               queued_messages: server.queue_size,
               bounce_rate: server.bounce_rate,
