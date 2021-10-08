@@ -24,9 +24,14 @@ module Clockwork
     PruneWebhookRequestsJob.queue(:main)
   end
 
+  every 1.hour, 'manual-hour', :at => ['**:17'] do
+    ProcessMessageRetentionJob.queue(:main)
+  end
+
   every 1.day, 'every-day', :at => ['03:00'] do
     ProcessMessageRetentionJob.queue(:main)
     PruneSuppressionListsJob.queue(:main)
+    ProcessRemoveRawMessageJob.queue(:main)
   end
 
 end

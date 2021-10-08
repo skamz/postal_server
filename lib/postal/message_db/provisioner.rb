@@ -122,9 +122,11 @@ module Postal
       # Remove a raw message table
       #
       def remove_raw_table(table)
-        @database.query("UPDATE `#{@database.database_name}`.`messages` SET raw_table = NULL, raw_headers_id = NULL, raw_body_id = NULL, size = NULL WHERE raw_table = '#{table}'")
-        @database.query("DELETE FROM `#{@database.database_name}`.`raw_message_sizes` WHERE table_name = '#{table}'")
-        drop_table(table)
+      	if table
+			@database.query("UPDATE `#{@database.database_name}`.`messages` SET raw_table = NULL, raw_headers_id = NULL, raw_body_id = NULL, size = NULL WHERE raw_table = '#{table}'")
+			@database.query("DELETE FROM `#{@database.database_name}`.`raw_message_sizes` WHERE table_name = '#{table}'")
+			drop_table(table)
+        end
       end
 
       #
