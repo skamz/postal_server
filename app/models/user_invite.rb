@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: user_invites
@@ -18,10 +20,10 @@ class UserInvite < ApplicationRecord
 
   include HasUUID
 
-  validates :email_address, :presence => true, :uniqueness => true, :format => {:with => /@/, :allow_blank => true}
+  validates :email_address, presence: true, uniqueness: { case_sensitive: false }, format: { with: /@/, allow_blank: true }
 
-  has_many :organization_users, :dependent => :destroy, :as => :user
-  has_many :organizations, :through => :organization_users
+  has_many :organization_users, dependent: :destroy, as: :user
+  has_many :organizations, through: :organization_users
 
   default_value :expires_at, -> { 7.days.from_now }
 
@@ -41,16 +43,16 @@ class UserInvite < ApplicationRecord
 
   def accept(user)
     transaction do
-      self.organization_users.each do |ou|
-        ou.update(:user => user) || ou.destroy
+      organization_users.each do |ou|
+        ou.update(user: user) || ou.destroy
       end
-      self.organization_users.reload
-      self.destroy
+      organization_users.reload
+      destroy
     end
   end
 
   def reject
-    self.destroy
+    destroy
   end
 
 end

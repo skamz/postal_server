@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Be sure to restart your server when you modify this file.
 
 # Add new inflection rules using the following format. Inflections
@@ -12,12 +14,19 @@
 
 # These inflection rules are supported but not enabled by default:
 ActiveSupport::Inflector.inflections(:en) do |inflect|
-  inflect.acronym 'API'
-  inflect.acronym 'SMTP'
-  inflect.acronym 'IP'
-  inflect.acronym 'DNS'
-  inflect.acronym 'UUID'
-  inflect.acronym 'HTTP'
-  inflect.acronym 'DB'
-  inflect.acronym 'DKIM'
+  inflect.acronym "DKIM"
+  inflect.acronym "HTTP"
+  inflect.acronym "OIDC"
+  inflect.acronym "SMTP"
+  inflect.acronym "UUID"
+
+  inflect.acronym "API"
+  inflect.acronym "DNS"
+  inflect.acronym "SSL"
+  inflect.acronym "MySQL"
+
+  inflect.acronym "DB"
+  inflect.acronym "IP"
+  inflect.acronym "MQ"
+  inflect.acronym "MX"
 end

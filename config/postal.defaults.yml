@@ -5,7 +5,7 @@
 # You can refer to this for a complete listing all available configuration options.
 
 web:
-  host: postal.example.com
+  host: localhost:5000
   protocol: https
 
 general:

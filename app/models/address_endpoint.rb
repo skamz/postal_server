@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: address_endpoints
@@ -16,10 +18,10 @@ class AddressEndpoint < ApplicationRecord
   include HasUUID
 
   belongs_to :server
-  has_many :routes, :as => :endpoint
-  has_many :additional_route_endpoints, :dependent => :destroy, :as => :endpoint
+  has_many :routes, as: :endpoint
+  has_many :additional_route_endpoints, dependent: :destroy, as: :endpoint
 
-  validates :address, :presence => true, :format => {:with => /@/}, :uniqueness => {:scope => [:server_id], :message => "has already been added"}
+  validates :address, presence: true, format: { with: /@/ }, uniqueness: { scope: [:server_id], message: "has already been added", case_sensitive: false }
 
   before_destroy :update_routes
 
@@ -28,15 +30,15 @@ class AddressEndpoint < ApplicationRecord
   end
 
   def update_routes
-    self.routes.each { |r| r.update(:endpoint => nil, :mode => 'Reject') }
+    routes.each { |r| r.update(endpoint: nil, mode: "Reject") }
   end
 
   def description
-    self.address
+    address
   end
 
   def domain
-    address.split('@', 2).last
+    address.split("@", 2).last
   end
 
 end

@@ -1,2 +1,3 @@
-require 'postal'
-require 'postal/message_db/mysql'
+# frozen_string_literal: true
+
+require "postal"

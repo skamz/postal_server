@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: domains
@@ -35,16 +37,25 @@
 #
 
 FactoryBot.define do
-
   factory :domain do
-    association :owner, :factory => :user
+    association :owner, factory: :organization
     sequence(:name) { |n| "example#{n}.com" }
-    verification_method { 'DNS' }
+    verification_method { "DNS" }
     verified_at { Time.now }
+
+    trait :unverified do
+      verified_at { nil }
+    end
+
+    trait :dns_all_ok do
+      spf_status { "OK" }
+      dkim_status { "OK" }
+      mx_status { "OK" }
+      return_path_status { "OK" }
+    end
   end
 
-  factory :organization_domain, :parent => :domain do
-    association :owner, :factory => :organization
+  factory :organization_domain, parent: :domain do
+    association :owner, factory: :organization
   end
-
 end

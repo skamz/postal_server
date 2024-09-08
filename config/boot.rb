@@ -1,16 +1,9 @@
-ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __dir__)
+# frozen_string_literal: true
 
-$stdout.sync = true
-$stderr.sync = true
+ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 
-require 'bundler/setup' # Set up gems listed in the Gemfile.
+require "bundler/setup" # Set up gems listed in the Gemfile.
 
-require_relative '../lib/postal/config'
-Postal.check_config!
+require_relative "../lib/postal/config"
 
-ENV['DATABASE_URL'] = Postal.database_url
-ENV['RAILS_ENV'] = Postal.config.rails&.environment || 'development'
-if ENV['PROC_NAME']
-  $0="[postal] #{ENV['PROC_NAME']}"
-end
-
+ENV["RAILS_ENV"] = Postal::Config.rails.environment || "development"
