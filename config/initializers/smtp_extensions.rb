@@ -1,34 +1,44 @@
-class Net::SMTP::Response
-  def message
-    @string
-  end
-end
+# frozen_string_literal: true
 
-class Net::SMTP
-  attr_accessor :source_address
+module Net
+  class SMTP
 
-  def secure_socket?
-    @socket.is_a?(OpenSSL::SSL::SSLSocket)
-  end
+    attr_accessor :source_address
 
-  #
-  # We had an issue where a message was sent to a server and was greylisted. It returned
-  # a Net::SMTPUnknownError error. We then tried to send another message on the same
-  # connection after running `rset` the next message didn't raise any exceptions because
-  # net/smtp returns a '200 dummy reply code' and doesn't raise any exceptions.
-  #
-  def rset
-    @error_occurred = false
-    getok('RSET')
-  end
+    def secure_socket?
+      return false unless @socket
 
-  def rset_errors
-    @error_occurred = false
-  end
+      @socket.io.is_a?(OpenSSL::SSL::SSLSocket)
+    end
 
-  private
+    #
+    # We had an issue where a message was sent to a server and was greylisted. It returned
+    # a Net::SMTPUnknownError error. We then tried to send another message on the same
+    # connection after running `rset` the next message didn't raise any exceptions because
+    # net/smtp returns a '200 dummy reply code' and doesn't raise any exceptions.
+    #
+    def rset
+      @error_occurred = false
+      getok("RSET")
+    end
 
-  def tcp_socket(address, port)
-    TCPSocket.open(address, port, self.source_address)
+    def rset_errors
+      @error_occurred = false
+    end
+
+    private
+
+    def tcp_socket(address, port)
+      TCPSocket.open(address, port, source_address)
+    end
+
+    class Response
+
+      def message
+        @string
+      end
+
+    end
+
   end
 end

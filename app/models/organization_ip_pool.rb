@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: organization_ip_pools
@@ -10,6 +12,8 @@
 #
 
 class OrganizationIPPool < ApplicationRecord
+
   belongs_to :organization
   belongs_to :ip_pool
+
 end

@@ -19,10 +19,10 @@
 config/postal.yml
 config/smtp.cert
 config/smtp.key
-config/lets_encrypt.pem
 config/signing.key
-config/fast_server.cert
-config/fast_server.key
+config/postal/**/*
+
+spec/config/postal.local.yml
 
 public/assets
 vendor/bundle
@@ -35,3 +35,9 @@ Procfile.local
 # auto generated files
 .generators
 .rakeTasks
+VERSION
+BRANCH
+
+.rubocop-https*
+.env*
+

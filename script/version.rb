@@ -1,3 +1,5 @@
 #!/usr/bin/env ruby
-require File.expand_path('../../lib/postal/version', __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path("../lib/postal/config", __dir__)
 puts Postal.version

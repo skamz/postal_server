@@ -1,4 +1,6 @@
-require 'resolv'
+# frozen_string_literal: true
+
+require "resolv"
 
 class OutgoingMessagePrototype
 
@@ -24,16 +26,14 @@ class OutgoingMessagePrototype
     @source_type = source_type
     @custom_headers = {}
     @attachments = []
-	@priority = 0
-    @message_id = "#{SecureRandom.uuid}@#{Postal.config.dns.return_path}"
+  	@priority = 0
+    @message_id = "#{SecureRandom.uuid}@#{Postal::Config.dns.return_path_domain}"
     attributes.each do |key, value|
       instance_variable_set("@#{key}", value)
     end
   end
 
-  def message_id
-    @message_id
-  end
+  attr_reader :message_id
 
   def from_address
     Postal::Helpers.strip_name_from_address(@from)
@@ -51,25 +51,23 @@ class OutgoingMessagePrototype
   end
 
   def find_domain
-    @domain ||= begin
-      domain = @server.authenticated_domain_for_address(@from)
-      if @server.allow_sender? && domain.nil?
-        domain = @server.authenticated_domain_for_address(@sender)
-      end
-      domain || :none
+    domain = @server.authenticated_domain_for_address(@from)
+    if @server.allow_sender? && domain.nil?
+      domain = @server.authenticated_domain_for_address(@sender)
     end
+    domain || :none
   end
 
   def to_addresses
-    @to.is_a?(String) ? @to.to_s.split(/\,\s*/) : @to.to_a
+    @to.is_a?(String) ? @to.to_s.split(/,\s*/) : @to.to_a
   end
 
   def cc_addresses
-    @cc.is_a?(String) ? @cc.to_s.split(/\,\s*/) : @cc.to_a
+    @cc.is_a?(String) ? @cc.to_s.split(/,\s*/) : @cc.to_a
   end
 
   def bcc_addresses
-    @bcc.is_a?(String) ? @bcc.to_s.split(/\,\s*/) : @bcc.to_a
+    @bcc.is_a?(String) ? @bcc.to_s.split(/,\s*/) : @bcc.to_a
   end
 
   def all_addresses
@@ -97,33 +95,35 @@ class OutgoingMessagePrototype
     @errors || {}
   end
 
+  # rubocop:disable Lint/DuplicateMethods
   def attachments
     (@attachments || []).map do |attachment|
       {
-        :name => attachment[:name],
-        :content_type => attachment[:content_type] || 'application/octet-stream',
-        :data => attachment[:base64] ? Base64.decode64(attachment[:data]) : attachment[:data]
+        name: attachment[:name],
+        content_type: attachment[:content_type] || "application/octet-stream",
+        data: attachment[:base64] && attachment[:data] ? Base64.decode64(attachment[:data]) : attachment[:data]
       }
     end
   end
+  # rubocop:enable Lint/DuplicateMethods
 
   def validate
-    @errors = Array.new
+    @errors = []
 
     if to_addresses.empty? && cc_addresses.empty? && bcc_addresses.empty?
       @errors << "NoRecipients"
     end
 
     if to_addresses.size > 50
-      @errors << 'TooManyToAddresses'
+      @errors << "TooManyToAddresses"
     end
 
     if cc_addresses.size > 50
-      @errors << 'TooManyCCAddresses'
+      @errors << "TooManyCCAddresses"
     end
 
     if bcc_addresses.size > 50
-      @errors << 'TooManyBCCAddresses'
+      @errors << "TooManyBCCAddresses"
     end
 
     if @plain_body.blank? && @html_body.blank?
@@ -138,8 +138,8 @@ class OutgoingMessagePrototype
       @errors << "UnauthenticatedFromAddress"
     end
 
-    if attachments && !attachments.empty?
-      attachments.each_with_index do |attachment, index|
+    if attachments.present?
+      attachments.each do |attachment|
         if attachment[:name].blank?
           @errors << "AttachmentMissingName" unless @errors.include?("AttachmentMissingName")
         elsif attachment[:data].blank?
@@ -156,32 +156,30 @@ class OutgoingMessagePrototype
       if @custom_headers.is_a?(Hash)
         @custom_headers.each { |key, value| mail[key.to_s] = value.to_s }
       end
-      mail.to = self.to_addresses.join(', ') if self.to_addresses.present?
-      mail.cc = self.cc_addresses.join(', ') if self.cc_addresses.present?
+      mail.to = to_addresses.join(", ") if to_addresses.present?
+      mail.cc = cc_addresses.join(", ") if cc_addresses.present?
       mail.from = @from
       mail.sender = @sender
       mail.subject = @subject
       mail.reply_to = @reply_to
-      if @html_body.blank? && attachments.empty?
-        mail.body = @plain_body
-      else
-        if !@plain_body.blank?
-          mail.text_part = Mail::Part.new
-          mail.text_part.body = @plain_body
+      mail.part content_type: "multipart/alternative" do |p|
+        if @plain_body.present?
+          p.text_part = Mail::Part.new
+          p.text_part.body = @plain_body
         end
-        if !@html_body.blank?
-          mail.html_part = Mail::Part.new
-          mail.html_part.content_type = "text/html; charset=UTF-8"
-          mail.html_part.body = @html_body
+        if @html_body.present?
+          p.html_part = Mail::Part.new
+          p.html_part.content_type = "text/html; charset=UTF-8"
+          p.html_part.body = @html_body
         end
       end
       attachments.each do |attachment|
         mail.attachments[attachment[:name]] = {
-          :mime_type => attachment[:content_type],
-          :content => attachment[:data]
+          mime_type: attachment[:content_type],
+          content: attachment[:data]
         }
       end
-      mail.header['Received'] = "from #{@source_type} (#{self.resolved_hostname} [#{@ip}]) by Postal with HTTP; #{Time.now.utc.rfc2822.to_s}"
+      mail.header["Received"] = ReceivedHeader.generate(@server, @source_type, @ip, :http)
       mail.message_id = "<#{@message_id}>"
       mail.to_s
     end
@@ -189,22 +187,18 @@ class OutgoingMessagePrototype
 
   def create_message(address)
     message = @server.message_db.new_message
-    message.scope = 'outgoing'
+    message.scope = "outgoing"
     message.rcpt_to = address
-    message.mail_from = self.from_address
-    message.domain_id = self.domain.id
-    message.raw_message = self.raw_message
-    message.tag = self.tag
-    message.credential_id = self.credential&.id
+    message.mail_from = from_address
+    message.domain_id = domain.id
+    message.raw_message = raw_message
+    message.tag = tag
+    message.credential_id = credential&.id
     message.received_with_ssl = true
-    message.bounce = @bounce ? 1 : 0
-	message.priority = @priority
+  	message.priority = @priority
+    message.bounce = @bounce
     message.save
-    {:id => message.id, :token => message.token}
-  end
-
-  def resolved_hostname
-    @resolved_hostname ||= Resolv.new.getname(@ip) rescue @ip
+    { id: message.id, token: message.token }
   end
 
 end

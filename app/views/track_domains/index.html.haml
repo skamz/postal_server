@@ -12,7 +12,7 @@
       %h2.noData__title There are no tracking domains for this server.
       %p.noData__text
         To use Postal's open & click tracking, you need to configure a domain that links will be re-written to use. Enable
-        message tracking by adding a sutiable tracking domain for your outbound e-mails.
+        message tracking by adding a suitable tracking domain for your outbound e-mails.
       %p.noData__button= link_to "Add a custom tracking domain", [:new, organization, @server, :track_domain], :class => "button button--positive"
 
   - else
@@ -31,10 +31,7 @@
                 %li.domainList__check.domainList__check--warning{:title => track_domain.dns_error} CNAME not configured correctly
 
               - if track_domain.ssl_enabled?
-                - if track_domain.has_ssl?
-                  %li.domainList__check.domainList__check--ok= link_to "SSL enabled", [:toggle_ssl, organization, @server, track_domain], :remote => true, :method => :post
-                - else
-                  %li.domainList__check.domainList__check--neutral= link_to "SSL setup in progress", [:toggle_ssl, organization, @server, track_domain], :remote => true, :method => :post
+                %li.domainList__check.domainList__check--neutral= link_to "SSL enabled", [:toggle_ssl, organization, @server, track_domain], :remote => true, :method => :post
               - else
                 %li.domainList__check.domainList__check--neutral-cross= link_to "SSL disabled", [:toggle_ssl, organization, @server, track_domain], :remote => true, :method => :post
 

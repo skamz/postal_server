@@ -8,9 +8,6 @@
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
   width: 100%; /* Specific width is required for Firefox. */
   background: transparent; /* Otherwise white in Chrome */
-  &:disabled {
-    opacity:0.5;
-  }
 }
 
 .spamRange::-webkit-slider-thumb {
@@ -76,7 +73,6 @@
   background: -moz-linear-gradient(left,  #3ff990 0%, #197ec9 47%, #6c5c8b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3ff990', endColorstr='#6c5c8b',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange::-moz-range-track {
@@ -88,7 +84,6 @@
   background: -moz-linear-gradient(left,  #3ff990 0%, #197ec9 47%, #6c5c8b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3ff990', endColorstr='#6c5c8b',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange::-ms-track {
@@ -102,7 +97,6 @@
   background: -moz-linear-gradient(left,  #3ff990 0%, #197ec9 47%, #6c5c8b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #3ff990 0%,#197ec9 47%,#6c5c8b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3ff990', endColorstr='#6c5c8b',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange--hot::-webkit-slider-runnable-track {
@@ -110,7 +104,6 @@
   background: -moz-linear-gradient(left,  #1688d0 0%, #fa141b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #1688d0 0%,#fa141b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #1688d0 0%,#fa141b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1688d0', endColorstr='#fa141b',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange--hot::-moz-range-track {
@@ -118,7 +111,6 @@
   background: -moz-linear-gradient(left,  #1688d0 0%, #fa141b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #1688d0 0%,#fa141b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #1688d0 0%,#fa141b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1688d0', endColorstr='#fa141b',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange--hot::-ms-track {
@@ -126,7 +118,6 @@
   background: -moz-linear-gradient(left,  #1688d0 0%, #fa141b 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #1688d0 0%,#fa141b 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #1688d0 0%,#fa141b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1688d0', endColorstr='#fa141b',GradientType=1 ); /* IE6-9 */
 }
 
 
@@ -136,7 +127,6 @@
   background: -moz-linear-gradient(left,  #146dd2 0%, #7cc546 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #146dd2 0%,#7cc546 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #146dd2 0%,#7cc546 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#146dd2', endColorstr='#7cc546',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange--blueGreen::-moz-range-track {
@@ -145,7 +135,6 @@
   background: -moz-linear-gradient(left,  #146dd2 0%, #7cc546 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #146dd2 0%,#7cc546 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #146dd2 0%,#7cc546 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#146dd2', endColorstr='#7cc546',GradientType=1 ); /* IE6-9 */
 }
 
 .spamRange--blueGreen::-ms-track {
@@ -154,6 +143,5 @@
   background: -moz-linear-gradient(left,  #146dd2 0%, #7cc546 100%); /* FF3.6-15 */
   background: -webkit-linear-gradient(left,  #146dd2 0%,#7cc546 100%); /* Chrome10-25,Safari5.1-6 */
   background: linear-gradient(to right,  #146dd2 0%,#7cc546 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#146dd2', endColorstr='#7cc546',GradientType=1 ); /* IE6-9 */
 }
 

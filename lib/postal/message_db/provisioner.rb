@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Postal
   module MessageDB
     class Provisioner
@@ -12,14 +14,14 @@ module Postal
       def provision
         drop
         create
-        migrate
+        migrate(silent: true)
       end
 
       #
       # Migrate this database
       #
-      def migrate(start_from = @database.schema_version)
-        Postal::MessageDB::Migration.run(@database, start_from)
+      def migrate(start_from: @database.schema_version, silent: false)
+        Postal::MessageDB::Migration.run(@database, start_from: start_from, silent: silent)
       end
 
       #
@@ -33,7 +35,7 @@ module Postal
       # Creates a new empty database
       #
       def create
-        @database.query("CREATE DATABASE `#{@database.database_name}` CHARSET utf8 COLLATE UTF8_UNICODE_CI;")
+        @database.query("CREATE DATABASE `#{@database.database_name}` CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;")
         true
       rescue Mysql2::Error => e
         e.message =~ /database exists/ ? false : raise
@@ -46,7 +48,7 @@ module Postal
         @database.query("DROP DATABASE `#{@database.database_name}`;")
         true
       rescue Mysql2::Error => e
-        e.message =~ /doesn\'t exist/ ? false : raise
+        e.message =~ /doesn't exist/ ? false : raise
       end
 
       #
@@ -68,9 +70,9 @@ module Postal
       # environment and can be quite dangerous in production.
       #
       def clean
-        ['clicks', 'deliveries', 'links', 'live_stats', 'loads', 'messages',
-          'raw_message_sizes', 'spam_checks', 'stats_daily', 'stats_hourly',
-          'stats_monthly', 'stats_yearly', 'suppressions', 'webhook_requests'].each do |table|
+        %w[clicks deliveries links live_stats loads messages
+           raw_message_sizes spam_checks stats_daily stats_hourly
+           stats_monthly stats_yearly suppressions webhook_requests].each do |table|
           @database.query("TRUNCATE `#{@database.database_name}`.`#{table}`")
         end
       end
@@ -79,29 +81,26 @@ module Postal
       # Creates a new empty raw message table for the given date. Returns nothing.
       #
       def create_raw_table(table)
-        begin
-          @database.query(create_table_query(table,:columns => {
-              :id   =>  'int(11) NOT NULL AUTO_INCREMENT',
-              :data =>  'longblob DEFAULT NULL',
-              :next =>  'int(11) DEFAULT NULL'
-            }
-          ))
-          @database.query("INSERT INTO `#{@database.database_name}`.`raw_message_sizes` (table_name, size) VALUES ('#{table}', 0)")
-        rescue Mysql2::Error => e
-          # Don't worry if the table already exists, another thread has already run this code.
-          raise unless e.message =~ /already exists/
-        end
+        @database.query(create_table_query(table, columns: {
+            id: "int(11) NOT NULL AUTO_INCREMENT",
+            data: "longblob DEFAULT NULL",
+            next: "int(11) DEFAULT NULL"
+          }))
+        @database.query("INSERT INTO `#{@database.database_name}`.`raw_message_sizes` (table_name, size) VALUES ('#{table}', 0)")
+      rescue Mysql2::Error => e
+        # Don't worry if the table already exists, another thread has already run this code.
+        raise unless e.message =~ /already exists/
       end
 
       #
       # Return a list of raw message tables that are older than the given date
       #
       def raw_tables(max_age = 30)
-        earliest_date = max_age ? Date.today - max_age : nil
+        earliest_date = max_age ? Time.now.utc.to_date - max_age : nil
         [].tap do |tables|
           @database.query("SHOW TABLES FROM `#{@database.database_name}` LIKE 'raw-%'").each do |tbl|
             tbl_name = tbl.to_a.first.last
-            date = Date.parse(tbl_name.gsub(/\Araw\-/, ''))
+            date = Date.parse(tbl_name.gsub(/\Araw-/, ""))
             if earliest_date.nil? || date < earliest_date
               tables << tbl_name
             end
@@ -130,25 +129,25 @@ module Postal
       end
 
       #
-      # Remove messages from the messages table that are too old to retain
+      # Remove messages from the messages table that are too old to retain
       #
       def remove_messages(max_age = 60)
-        time = (Date.today - max_age.days).to_time.end_of_day
-        if newest_message_to_remove = @database.select(:messages, :where => {:timestamp => {:less_than_or_equal_to => time.to_f}}, :limit => 1, :order => :id, :direction => 'DESC', :fields => [:id]).first
-          id = newest_message_to_remove['id']
-          @database.query("DELETE FROM `#{@database.database_name}`.`clicks` WHERE `message_id` <= #{id}")
-          @database.query("DELETE FROM `#{@database.database_name}`.`loads` WHERE `message_id` <= #{id}")
-          @database.query("DELETE FROM `#{@database.database_name}`.`deliveries` WHERE `message_id` <= #{id}")
-          @database.query("DELETE FROM `#{@database.database_name}`.`spam_checks` WHERE `message_id` <= #{id}")
-          @database.query("DELETE FROM `#{@database.database_name}`.`messages` WHERE `id` <= #{id}")
-        end
+        time = (Time.now.utc.to_date - max_age.days).to_time.end_of_day
+        return unless newest_message_to_remove = @database.select(:messages, where: { timestamp: { less_than_or_equal_to: time.to_f } }, limit: 1, order: :id, direction: "DESC", fields: [:id]).first
+
+        id = newest_message_to_remove["id"]
+        @database.query("DELETE FROM `#{@database.database_name}`.`clicks` WHERE `message_id` <= #{id}")
+        @database.query("DELETE FROM `#{@database.database_name}`.`loads` WHERE `message_id` <= #{id}")
+        @database.query("DELETE FROM `#{@database.database_name}`.`deliveries` WHERE `message_id` <= #{id}")
+        @database.query("DELETE FROM `#{@database.database_name}`.`spam_checks` WHERE `message_id` <= #{id}")
+        @database.query("DELETE FROM `#{@database.database_name}`.`messages` WHERE `id` <= #{id}")
       end
 
       #
       # Remove raw message tables in order order until size is under the given size (given in MB)
       #
       def remove_raw_tables_until_less_than_size(size)
-        tables = self.raw_tables(nil)
+        tables = raw_tables(nil)
         tables_removed = []
         until @database.total_size <= size
           table = tables.shift
@@ -168,18 +167,18 @@ module Postal
           s << "CREATE TABLE `#{@database.database_name}`.`#{table_name}` ("
           s << options[:columns].map do |column_name, column_options|
             "`#{column_name}` #{column_options}"
-          end.join(', ')
+          end.join(", ")
           if options[:indexes]
             s << ", "
             s << options[:indexes].map do |index_name, index_options|
               "KEY `#{index_name}` (#{index_options}) USING BTREE"
-            end.join(', ')
+            end.join(", ")
           end
           if options[:unique_indexes]
             s << ", "
             s << options[:unique_indexes].map do |index_name, index_options|
               "UNIQUE KEY `#{index_name}` (#{index_options})"
-            end.join(', ')
+            end.join(", ")
           end
           if options[:primary_key]
             s << ", PRIMARY KEY (#{options[:primary_key]})"
@@ -187,10 +186,9 @@ module Postal
             s << ", PRIMARY KEY (`id`)"
           end
 
-          s << ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;"
+          s << ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;"
         end
       end
-
 
     end
   end
