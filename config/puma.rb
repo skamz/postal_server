@@ -1,16 +1,12 @@
-require_relative '../lib/postal/config'
-threads_count = Postal.config.web_server&.max_threads&.to_i || 5
+# frozen_string_literal: true
+
+require_relative "../lib/postal/config"
+
+threads_count = Postal::Config.web_server.max_threads
 threads         threads_count, threads_count
-bind_address  = Postal.config.web_server&.bind_address || '127.0.0.1'
-bind_port     = Postal.config.web_server&.port&.to_i || 5000
+bind_address  = ENV.fetch("BIND_ADDRESS", Postal::Config.web_server.default_bind_address)
+bind_port     = ENV.fetch("PORT", Postal::Config.web_server.default_port)
 bind            "tcp://#{bind_address}:#{bind_port}"
-environment     Postal.config.rails&.environment || 'development'
+environment     Postal::Config.rails.environment || "development"
 prune_bundler
 quiet false
-unless ENV['LOG_TO_STDOUT']
-  stdout_redirect Postal.log_root.join('puma.log'), Postal.log_root.join('puma.log'), true
-end
-
-if ENV['APP_ROOT']
-  directory ENV['APP_ROOT']
-end

@@ -1,10 +1,21 @@
+# frozen_string_literal: true
+
 module Postal
   module MessageDB
     class Database
 
-      def initialize(organization_id, server_id)
+      class << self
+
+        def connection_pool
+          @connection_pool ||= ConnectionPool.new
+        end
+
+      end
+
+      def initialize(organization_id, server_id, database_name: nil)
         @organization_id = organization_id
         @server_id = server_id
+        @database_name = database_name
       end
 
       attr_reader :organization_id
@@ -22,10 +33,10 @@ module Postal
       #
       def schema_version
         @schema_version ||= begin
-          last_migration = select(:migrations, :order => :version, :direction => 'DESC', :limit => 1).first
-          last_migration ? last_migration['version'] : 0
+          last_migration = select(:migrations, order: :version, direction: "DESC", limit: 1).first
+          last_migration ? last_migration["version"] : 0
         rescue Mysql2::Error => e
-          e.message =~ /doesn\'t exist/ ? 0 : raise
+          e.message =~ /doesn't exist/ ? 0 : raise
         end
       end
 
@@ -52,8 +63,8 @@ module Postal
       end
 
       #
-      # Create a new message with the given attributes. This won't be saved to the database
-      # until it has been 'save'd.
+      # Create a new message with the given attributes. This won't be saved to the database
+      # until it has been 'save'd.
       #
       def new_message(attributes = {})
         Message.new(self, attributes)
@@ -63,39 +74,39 @@ module Postal
       # Return the total size of all stored messages
       #
       def total_size
-        query("SELECT SUM(size) AS size FROM `#{database_name}`.`raw_message_sizes`").first['size'] || 0
+        query("SELECT SUM(size) AS size FROM `#{database_name}`.`raw_message_sizes`").first["size"] || 0
       end
 
       #
-      # Return the live stats instance
+      # Return the live stats instance
       #
       def live_stats
         @live_stats ||= LiveStats.new(self)
       end
 
       #
-      # Return the statistics instance
+      # Return the statistics instance
       #
       def statistics
         @statistics ||= Statistics.new(self)
       end
 
       #
-      # Return the provisioner instance
+      # Return the provisioner instance
       #
       def provisioner
         @provisioner ||= Provisioner.new(self)
       end
 
       #
-      # Return the provisioner instance
+      # Return the provisioner instance
       #
       def suppression_list
         @suppression_list ||= SuppressionList.new(self)
       end
 
       #
-      # Return the provisioner instance
+      # Return the provisioner instance
       #
       def webhooks
         @webhooks ||= Webhooks.new(self)
@@ -111,19 +122,17 @@ module Postal
       #
       # Insert a new raw message into a table (creating it if needed)
       #
-      def insert_raw_message(data, date = Date.today)
+      def insert_raw_message(data, date = Time.now.utc.to_date)
         table_name = raw_table_name_for_date(date)
         begin
           headers, body = data.split(/\r?\n\r?\n/, 2)
-          headers_id = insert(table_name, :data => headers)
-          body_id = insert(table_name, :data => body)
+          headers_id = insert(table_name, data: headers)
+          body_id = insert(table_name, data: body)
         rescue Mysql2::Error => e
-          if e.message =~ /doesn\'t exist/
-            provisioner.create_raw_table(table_name)
-            retry
-          else
-            raise
-          end
+          raise unless e.message =~ /doesn't exist/
+
+          provisioner.create_raw_table(table_name)
+          retry
         end
         [table_name, headers_id, body_id]
       end
@@ -142,21 +151,22 @@ module Postal
       #   :count     => Return a count of the results instead of the actual data
       #
       def select(table, options = {})
-        sql_query = "SELECT"
+        sql_query = String.new("SELECT")
         if options[:count]
           sql_query << " COUNT(id) AS count"
         elsif options[:fields]
-          sql_query << " " + options[:fields].map { |f| "`#{f}`" }.join(', ')
+          sql_query << (" " + options[:fields].map { |f| "`#{f}`" }.join(", "))
         else
           sql_query << " *"
         end
         sql_query << " FROM `#{database_name}`.`#{table}`"
-        if options[:where] && !options[:where].empty?
-          sql_query << " " + build_where_string(options[:where], ' AND ')
+        if options[:where].present?
+          sql_query << (" " + build_where_string(options[:where], " AND "))
         end
         if options[:order]
-          direction = (options[:direction] || 'ASC').upcase
-          raise Postal::Error, "Invalid direction #{options[:direction]}" unless ['ASC', 'DESC'].include?(direction)
+          direction = (options[:direction] || "ASC").upcase
+          raise Postal::Error, "Invalid direction #{options[:direction]}" unless %w[ASC DESC].include?(direction)
+
           sql_query << " ORDER BY `#{options[:order]}` #{direction}"
         end
 
@@ -170,14 +180,14 @@ module Postal
 
         result = query(sql_query)
         if options[:count]
-          result.first['count']
+          result.first["count"]
         else
           result.to_a
         end
       end
 
       #
-      # A paginated version of select
+      # A paginated version of select
       #
       def select_with_pagination(table, page, options = {})
         page = page.to_i
@@ -187,11 +197,11 @@ module Postal
         offset = (page - 1) * per_page
 
         result = {}
-        result[:total] = select(table, options.merge(:count => true))
-        result[:records] = select(table, options.merge(:limit => per_page, :offset => offset))
+        result[:total] = select(table, options.merge(count: true))
+        result[:records] = select(table, options.merge(limit: per_page, offset: offset))
         result[:per_page] = per_page
         result[:total_pages], remainder = result[:total].divmod(per_page)
-        result[:total_pages] += 1 if remainder > 0
+        result[:total_pages] += 1 if remainder.positive?
         result[:page] = page
         result
       end
@@ -225,7 +235,7 @@ module Postal
         sql_query = "UPDATE `#{database_name}`.`#{table}` SET"
         sql_query << " #{hash_to_sql(attributes)}"
         if options[:where]
-          sql_query << " " + build_where_string(options[:where])
+          sql_query << (" " + build_where_string(options[:where]))
         end
         with_mysql do |mysql|
           query_on_connection(mysql, sql_query)
@@ -239,8 +249,8 @@ module Postal
       #
       def insert(table, attributes)
         sql_query = "INSERT INTO `#{database_name}`.`#{table}`"
-        sql_query << " (" + attributes.keys.map { |k| "`#{k}`" }.join(', ') + ")"
-        sql_query << " VALUES (" + attributes.values.map { |v| escape(v) }.join(', ') + ")"
+        sql_query << (" (" + attributes.keys.map { |k| "`#{k}`" }.join(", ") + ")")
+        sql_query << (" VALUES (" + attributes.values.map { |v| escape(v) }.join(", ") + ")")
         with_mysql do |mysql|
           query_on_connection(mysql, sql_query)
           mysql.last_id
@@ -255,16 +265,16 @@ module Postal
           nil
         else
           sql_query = "INSERT INTO `#{database_name}`.`#{table}`"
-          sql_query << " (" + keys.map { |k| "`#{k}`" }.join(', ') + ")"
+          sql_query << (" (" + keys.map { |k| "`#{k}`" }.join(", ") + ")")
           sql_query << " VALUES "
-          sql_query << values.map { |v| "(" + v.map { |v| escape(v) }.join(', ') + ")" }.join(', ')
+          sql_query << values.map { |v| "(" + v.map { |r| escape(r) }.join(", ") + ")" }.join(", ")
           query(sql_query)
         end
       end
 
       #
       # Deletes a in the database. Accepts a table name, and some options which
-      # are shown below:
+      # are shown below:
       #
       #   :where     => The condition to apply to the query
       #
@@ -272,7 +282,7 @@ module Postal
       #
       def delete(table, options = {})
         sql_query = "DELETE FROM `#{database_name}`.`#{table}`"
-        sql_query << " " + build_where_string(options[:where], ' AND ')
+        sql_query << (" " + build_where_string(options[:where], " AND "))
         with_mysql do |mysql|
           query_on_connection(mysql, sql_query)
           mysql.affected_rows
@@ -280,18 +290,20 @@ module Postal
       end
 
       #
-      # Return the correct database name
+      # Return the correct database name
       #
       def database_name
-        @database_name ||= "#{Postal.config.message_db.prefix}-server-#{@server_id}"
+        @database_name ||= "#{Postal::Config.message_db.database_name_prefix}-server-#{@server_id}"
       end
 
       #
       # Run a query, log it and return the result
       #
       class ResultForExplainPrinter
+
         attr_reader :columns
         attr_reader :rows
+
         def initialize(result)
           if result.first
             @columns = result.first.keys
@@ -301,28 +313,23 @@ module Postal
             @rows = []
           end
         end
+
       end
 
       def stringify_keys(hash)
-        hash.each_with_object({}) do |(key, value), hash|
-          hash[key.to_s] = value
-        end
+        hash.transform_keys(&:to_s)
       end
 
       def escape(value)
         with_mysql do |mysql|
           if value == true
-            '1'
+            "1"
           elsif value == false
-            '0'
-          elsif value.nil?
-            'NULL'
+            "0"
+          elsif value.nil? || value.to_s.empty?
+            "NULL"
           else
-            if value.to_s.length == 0
-              'NULL'
-            else
-              "'" + mysql.escape(value.to_s) + "'"
-            end
+            "'" + mysql.escape(value.to_s) + "'"
           end
         end
       end
@@ -337,55 +344,51 @@ module Postal
 
       def query_on_connection(connection, query)
         start_time = Time.now.to_f
-        result = connection.query(query)
+        result = connection.query(query, cast_booleans: true)
         time = Time.now.to_f - start_time
         logger.debug "  \e[4;34mMessageDB Query (#{time.round(2)}s) \e[0m  \e[33m#{query}\e[0m"
-        if time > 0.5 && query =~ /\A(SELECT|UPDATE|DELETE) /
-          id = Nifty::Utils::RandomString.generate(:length => 6).upcase
+        if time > 0.05 && query =~ /\A(SELECT|UPDATE|DELETE) /
+          id = SecureRandom.alphanumeric(8)
           explain_result = ResultForExplainPrinter.new(connection.query("EXPLAIN #{query}"))
-          slow_query_logger.info "[#{id}] EXPLAIN #{query}"
-          for line in ActiveRecord::ConnectionAdapters::MySQL::ExplainPrettyPrinter.new.pp(explain_result, time).split("\n")
-            slow_query_logger.info "[#{id}] " + line
+          logger.info "  [#{id}] EXPLAIN #{query}"
+          ActiveRecord::ConnectionAdapters::MySQL::ExplainPrettyPrinter.new.pp(explain_result, time).split("\n").each do |line|
+            logger.info "  [#{id}] " + line
           end
         end
         result
       end
 
       def logger
-        defined?(Rails) ? Rails.logger : Logger.new(STDOUT)
-      end
-
-      def slow_query_logger
-        Postal.logger_for(:slow_message_db_queries)
+        defined?(Rails) ? Rails.logger : Logger.new($stdout)
       end
 
       def with_mysql(&block)
-        MessageDB::MySQL.client(&block)
+        self.class.connection_pool.use(&block)
       end
 
-      def build_where_string(attributes, joiner = ', ')
+      def build_where_string(attributes, joiner = ", ")
         "WHERE #{hash_to_sql(attributes, joiner)}"
       end
 
-      def hash_to_sql(hash, joiner = ', ')
+      def hash_to_sql(hash, joiner = ", ")
         hash.map do |key, value|
-          if value.is_a?(Array) && value.all? { |v| v.is_a?(Fixnum) }
+          if value.is_a?(Array) && value.all? { |v| v.is_a?(Integer) }
             "`#{key}` IN (#{value.join(', ')})"
           elsif value.is_a?(Array)
-            escaped_values = value.map { |v| escape(v) }.join(', ')
+            escaped_values = value.map { |v| escape(v) }.join(", ")
             "`#{key}` IN (#{escaped_values})"
           elsif value.is_a?(Hash)
             sql = []
-            value.each do |operator, value|
+            value.each do |operator, inner_value|
               case operator
               when :less_than
-                sql << "`#{key}` < #{escape(value)}"
+                sql << "`#{key}` < #{escape(inner_value)}"
               when :greater_than
-                sql << "`#{key}` > #{escape(value)}"
+                sql << "`#{key}` > #{escape(inner_value)}"
               when :less_than_or_equal_to
-                sql << "`#{key}` <= #{escape(value)}"
+                sql << "`#{key}` <= #{escape(inner_value)}"
               when :greater_than_or_equal_to
-                sql << "`#{key}` >= #{escape(value)}"
+                sql << "`#{key}` >= #{escape(inner_value)}"
               end
             end
             sql.empty? ? "1=1" : sql.join(joiner)

@@ -1,4 +1,6 @@
-require_relative 'boot'
+# frozen_string_literal: true
+
+require_relative "boot"
 
 require "rails"
 require "active_model/railtie"
@@ -10,12 +12,14 @@ require "sprockets/railtie"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
-Bundler.require(*Rails.groups)
+gem_groups = Rails.groups
+gem_groups << :oidc if Postal::Config.oidc.enabled?
+Bundler.require(*gem_groups)
 
 module Postal
   class Application < Rails::Application
-    # Set the Rails logger
-    config.logger = Postal.logger_for(:rails)
+
+    config.load_defaults 7.0
 
     # Disable most generators
     config.generators do |g|
@@ -27,9 +31,21 @@ module Postal
     end
 
     # Include from lib
-    config.eager_load_namespaces << Postal
+    config.eager_load_paths << Rails.root.join("lib")
 
     # Disable field_with_errors
-    config.action_view.field_error_proc = Proc.new { |t, i| t }
+    config.action_view.field_error_proc = proc { |t, _| t }
+
+    # Load the tracking server middleware
+    require "tracking_middleware"
+    config.middleware.insert_before ActionDispatch::HostAuthorization, TrackingMiddleware
+
+    config.hosts << Postal::Config.postal.web_hostname
+
+    puts config.hosts
+    unless Postal::Config.logging.rails_log_enabled?
+      config.logger = Logger.new("/dev/null")
+    end
+
   end
 end

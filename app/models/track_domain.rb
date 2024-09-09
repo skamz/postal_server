@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: track_domains
@@ -18,7 +20,7 @@
 #  excluded_click_domains :text(65535)
 #
 
-require 'resolv'
+require "resolv"
 
 class TrackDomain < ApplicationRecord
 
@@ -27,18 +29,16 @@ class TrackDomain < ApplicationRecord
   belongs_to :server
   belongs_to :domain
 
-  validates :name, :presence => true, :format => {:with => /\A[a-z0-9\-]+\z/}, :uniqueness => {:scope => :domain_id, :message => "is already added"}
-  validates :domain_id, :uniqueness => {:scope => :server_id, :message => "already has a track domain for this server"}
+  validates :name, presence: true, format: { with: /\A[a-z0-9-]+\z/ }, uniqueness: { scope: :domain_id, case_sensitive: false, message: "is already added" }
+  validates :domain_id, uniqueness: { scope: :server_id, case_sensitive: false, message: "already has a track domain for this server" }
   validate :validate_domain_belongs_to_server
 
-  scope :ok, -> { where(:dns_status => 'OK')}
+  scope :ok, -> { where(dns_status: "OK") }
 
-  after_create :check_dns, :unless => :dns_status
-  after_create :create_ssl_certificate_if_missing
-  after_destroy :delete_ssl_certificate_when_not_in_use
+  after_create :check_dns, unless: :dns_status
 
   before_validation do
-    self.server = self.domain.server if self.domain && self.server.nil?
+    self.server = domain.server if domain && server.nil?
   end
 
   def full_name
@@ -50,58 +50,34 @@ class TrackDomain < ApplicationRecord
   end
 
   def dns_ok?
-    self.dns_status == 'OK'
+    dns_status == "OK"
   end
 
   def check_dns
-    result = self.domain.resolver.getresources(self.full_name, Resolv::DNS::Resource::IN::CNAME)
-    records = result.map { |r| r.name.to_s.downcase }
+    records = domain.resolver.cname(full_name)
     if records.empty?
-      self.dns_status = 'Missing'
-      self.dns_error = "There is no record at #{self.full_name}"
+      self.dns_status = "Missing"
+      self.dns_error = "There is no record at #{full_name}"
+    elsif records.size == 1 && records.first == Postal::Config.dns.track_domain
+      self.dns_status = "OK"
+      self.dns_error = nil
     else
-      if records.size == 1 && records.first == Postal.config.dns.track_domain
-        self.dns_status = 'OK'
-        self.dns_error = nil
-      else
-        self.dns_status = 'Invalid'
-        self.dns_error = "There is a CNAME record at #{self.full_name} but it points to #{records.first} which is incorrect. It should point to #{Postal.config.dns.track_domain}."
-      end
+      self.dns_status = "Invalid"
+      self.dns_error = "There is a CNAME record at #{full_name} but it points to #{records.first} which is incorrect. It should point to #{Postal::Config.dns.track_domain}."
     end
     self.dns_checked_at = Time.now
-    self.save!
+    save!
     dns_ok?
   end
 
-  def has_ssl?
-    ssl_certificate && ssl_certificate.active?
-  end
-
   def use_ssl?
-    ssl_enabled? && has_ssl?
-  end
-
-  def ssl_certificate
-    @ssl_certificate ||= TrackCertificate.where(:domain => self.full_name).first
+    ssl_enabled?
   end
 
   def validate_domain_belongs_to_server
-    if self.domain && ![self.server, self.server.organization].include?(self.domain.owner)
-      errors.add :domain, "does not belong to the server or the server's organization"
-    end
-  end
+    return unless domain && ![server, server.organization].include?(domain.owner)
 
-  def create_ssl_certificate_if_missing
-    unless TrackCertificate.where(:domain => self.full_name).exists?
-      TrackCertificate.create!(:domain => self.full_name)
-    end
-  end
-
-  def delete_ssl_certificate_when_not_in_use
-    others = TrackDomain.includes(:domain).where(:name => self.name, :domains => {:name => self.domain.name})
-    if others.empty?
-      TrackCertificate.where(:domain => self.full_name).destroy_all
-    end
+    errors.add :domain, "does not belong to the server or the server's organization"
   end
 
 end

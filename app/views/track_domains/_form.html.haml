@@ -10,15 +10,15 @@
           = f.select :domain_id, domain_options_for_select(@server, @track_domain.domain), {}, :class => 'input input--select routeNameInput__domain', :disabled => @track_domain.persisted?
         %p.fieldSet__text
           This is the domain that requests for tracked links will be directed through when you use click tracking. We recommend using something like
-          <b>click.yourdomain.com</b>. You will need to a CNAME record to point to <b>#{Postal.config.dns.track_domain}</b> for this once you've added it.
+          <b>click.yourdomain.com</b>. Once chosen, add a CNAME record which points to <b>#{Postal::Config.dns.track_domain}</b>.
 
     .fieldSet__field
       = f.label :ssl_enabled, :class => 'fieldSet__label'
       .fieldSet__input
         = f.select :ssl_enabled, [["Yes - use SSL for tracking whenever possible", true], ["No - never use SSL for tracking", false]], {}, :class => 'input input--select'
         %p.fieldSet__text
-          If enabled, we'll try to remove the replies/signatures from the plain body and send them separately to the rest of the body.
-          This is useful if you just want to see the latest message in a thread.
+          If enabled, we'll use https for the tracking domain when replacing links and images. Please note that a SSL certificate 
+          should be installed on the tracking domain if enabled. 
 
     .fieldSet__field
       = f.label :track_loads, :class => 'fieldSet__label'
@@ -47,4 +47,3 @@
 
   .fieldSetSubmit.buttonSet
     = f.submit @track_domain.new_record? ? "Create Track Domain" : "Save Track Domain", :class => 'button button--positive js-form-submit'
-

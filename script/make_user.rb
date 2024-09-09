@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
-trap("INT") { puts ; exit }
+# frozen_string_literal: true
 
-require_relative '../config/environment'
-require 'postal/user_creator'
+trap("INT") do
+  puts
+  exit
+end
 
-Postal::UserCreator.start do |u|
+require_relative "../config/environment"
+
+UserCreator.start do |u|
   u.admin = true
   u.email_verified_at = Time.now
 end

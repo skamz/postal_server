@@ -1,14 +1,9 @@
-require 'postal/config'
+# frozen_string_literal: true
 
-if Postal.config.general&.exception_url
-  require 'raven'
-  Raven.configure do |config|
-    config.dsn = Postal.config.general.exception_url
-    config.environments = ['production']
-    if ENV['DEV_EXCEPTIONS']
-      config.environments << 'development'
-    end
-    config.silence_ready = true
-    config.tags = {:process => ENV['PROC_NAME']}
+require "postal/config"
+
+if Postal::Config.logging.sentry_dsn
+  Sentry.init do |config|
+    config.dsn = Postal::Config.logging.sentry_dsn
   end
 end

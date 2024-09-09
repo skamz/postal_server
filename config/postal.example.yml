@@ -1,6 +1,6 @@
 web:
   # The host that the management interface will be available on
-  host: postal.example.com
+  host: localhost:5000
   # The protocol that requests to the management interface should happen on
   protocol: https
 
