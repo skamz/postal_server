@@ -53,10 +53,6 @@ module Postal
       def messages(*args)
         Message.find(self, *args)
       end
-	  
-	  def messages_limited(*args)
-        Message.find_limited(self, *args)
-      end
 
       def messages_with_pagination(*args)
         Message.find_with_pagination(self, *args)
@@ -202,23 +198,6 @@ module Postal
         result[:per_page] = per_page
         result[:total_pages], remainder = result[:total].divmod(per_page)
         result[:total_pages] += 1 if remainder.positive?
-        result[:page] = page
-        result
-      end
-	  
-	  def select_limited(table, page, options = {})
-        page = page.to_i
-        page = 1 if page <= 0
-
-        per_page = options.delete(:per_page) || 30
-        offset = (page - 1) * per_page
-
-        result = {}
-        result[:total] = offset + per_page * 2
-        result[:records] = select(table, options.merge(:limit => per_page, :offset => offset))
-        result[:per_page] = per_page
-        result[:total_pages], remainder = result[:total].divmod(per_page)
-        result[:total_pages] += 1 if remainder > 0
         result[:page] = page
         result
       end

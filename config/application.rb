@@ -42,7 +42,6 @@ module Postal
 
     config.hosts << Postal::Config.postal.web_hostname
 
-    puts config.hosts
     unless Postal::Config.logging.rails_log_enabled?
       config.logger = Logger.new("/dev/null")
     end

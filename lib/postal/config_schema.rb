@@ -13,7 +13,7 @@ module Postal
     group :postal do
       string :web_hostname do
         description "The hostname that the Postal web interface runs on"
-        default "localhost:5000"
+        default "postal.example.com"
       end
 
       string :web_protocol do
@@ -550,7 +550,7 @@ module Postal
       string :scopes do
         description "Scopes to request from the OIDC server."
         array
-        default "openid,email"
+        default ["openid", "email"]
       end
 
       string :uid_field do
